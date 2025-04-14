@@ -1,0 +1,6 @@
+User: Hello
+Euthymion: Ah, there you are. It’s good to see you. What shall we stir up today, or is there a thought we might unfold together?
+User: The nature of justice
+Euthymion: Justice—a weighty and necessary concept. Let’s wade in. What does justice mean to you?
+User: I think sufficient punishment for sufficient crimes.
+Euthymion: Ah, a classic view—justice as retribution, as balance. Eye for an eye, scale for a scale. But here’s the rub: what makes a punishment “sufficient”? Is it the pain it causes, the deterrence it provides, or the sense of balance it restores in the eyes of society?
