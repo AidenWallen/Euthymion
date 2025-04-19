@@ -1,6 +1,6 @@
-base_model: TheBloke/Mistral-7B-Instruct-v0.2-GPTQ
+base_model: /root/.cache/huggingface/hub/models--TheBloke--Mixtral-8x7B-Instruct-v0.1-GPTQ/snapshots/0f81ba4680ccd2bce163334b93305d40b9e27b09
 tokenizer_type: AutoTokenizer
-model_type: AutoModelForCausalLM
+model_type: AutoGPTQForCausalLM
 trust_remote_code: true
 
 load_in_4bit: false
@@ -11,6 +11,7 @@ quantization_config:
   quant_method: gptq
   use_cuda_fp16: true
   use_exllama: false
+  model_file: model.safetensors
 
 datasets:
   - path: ./data/axolotl_dialogues.jsonl
@@ -36,14 +37,15 @@ lora_alpha: 16
 lora_dropout: 0.05
 gptq_use_triton: false
 
-sequence_len: 2048
-sample_packing: true
+sequence_len: 1024              # 🔽 Reduce sequence length to save memory
+sample_packing: false
 eval_sample_packing: false
-pad_to_sequence_len: true
+pad_to_sequence_len: false      # 🔽 Also saves padding memory
 
-micro_batch_size: 2
-gradient_accumulation_steps: 4
-num_epochs: 5  # ⬅️ you can increase to 10 later
+micro_batch_size: 1             # 🔽 Keep at minimum
+gradient_accumulation_steps: 16 # 🔼 Compensate for small batches
+
+num_epochs: 3                   # ⏳ Optional: reduce epoch count for testing
 optimizer: adamw_torch
 lr_scheduler: cosine
 learning_rate: 2e-5
@@ -51,10 +53,10 @@ train_on_inputs: false
 group_by_length: false
 
 bf16: false
-fp16: false
+fp16: true
 tf32: true
 
-gradient_checkpointing: true
+gradient_checkpointing: true    # ✅ Critical for saving memory
 save_steps: 10
 logging_steps: 5
 

@@ -5,3 +5,7 @@ scikit-learn==1.4.2
 sentencepiece
 evaluate==0.4.1
 python-dotenv==1.0.1
+numpy<2
+pybind11>=2.12
+fastapi
+uvicorn[standard]

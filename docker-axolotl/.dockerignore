@@ -1,0 +1,23 @@
+# Don't include Git history
+.git
+.gitignore
+
+# Model weights, checkpoints, and large files
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# Node/npm or Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+*.log
+
+# VSCode and OS files
+.vscode/
+.DS_Store
+
+

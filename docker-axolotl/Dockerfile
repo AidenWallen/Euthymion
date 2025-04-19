@@ -1,32 +1,46 @@
-FROM python:3.11-slim
+# Use full CUDA development image (includes nvcc)
+FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
 
-# Set environment variables to avoid prompts during installs
+# Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
+ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9+PTX"
+ENV CUDA_HOME=/usr/local/cuda
 
-# Install system dependencies
+# Install base packages and Python 3.11
 RUN apt-get update && apt-get install -y \
     git \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    git-lfs \
+    curl \
+    wget \
+    ca-certificates \
+    software-properties-common \
+    build-essential \
+    ninja-build && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3.11-distutils && \
+    rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
-WORKDIR /app
+# Set Python 3.11 as default and install pip
+RUN ln -sf /usr/bin/python3.11 /usr/bin/python && \
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python
 
-# Copy only the requirements first (for better caching)
-COPY requirements.txt .
+# Set working directory
+WORKDIR /workspace
 
-# Install Python dependencies
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# Copy model and code files
+COPY Mixtral-8x7B-v0.1-GPTQ /workspace/Mixtral-8x7B-v0.1-GPTQ
+COPY exllamav2 /exllamav2
+COPY . .
 
-# Install Axolotl from GitHub
-RUN pip install git+https://github.com/OpenAccess-AI-Collective/axolotl.git@main
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install /exllamav2 --no-cache-dir
 
-# Install GPTQ dependencies
-RUN pip install auto-gptq "gptqmodel>=1.4.3" "optimum>=1.24.0"
+# Debug: confirm app.py exists
+RUN echo "Checking for app.py..." && ls -la /workspace && cat /workspace/app.py || echo "app.py NOT FOUND"
 
-# Copy the rest of the project files
-COPY config.yml ./
-COPY data/ ./data/
-
-# Start container in interactive shell
-CMD ["bash"]
+# Start FastAPI server
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
