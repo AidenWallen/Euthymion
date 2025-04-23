@@ -1,5 +1,6 @@
 # app.py
-from fastapi import FastAPI, Request
+import os
+from fastapi import FastAPI
 from pydantic import BaseModel
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
@@ -10,13 +11,19 @@ app = FastAPI()
 # === Load model once on startup ===
 base_model = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 lora_path = "./out"
+hf_token = os.environ.get("HF_TOKEN")  # Secure token access
 
-tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
+tokenizer = AutoTokenizer.from_pretrained(
+    base_model,
+    trust_remote_code=True,
+    use_auth_token=hf_token
+)
 base = AutoModelForCausalLM.from_pretrained(
     base_model,
     trust_remote_code=True,
     device_map="auto",
-    torch_dtype=torch.float16
+    torch_dtype=torch.float16,
+    use_auth_token=hf_token
 )
 model = PeftModel.from_pretrained(base, lora_path)
 model.eval()

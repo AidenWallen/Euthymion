@@ -30,17 +30,15 @@ RUN ln -sf /usr/bin/python3.11 /usr/bin/python && \
 # Set working directory
 WORKDIR /workspace
 
-# Copy model and code files
-COPY Mixtral-8x7B-v0.1-GPTQ /workspace/Mixtral-8x7B-v0.1-GPTQ
-COPY exllamav2 /exllamav2
+# Copy everything *after* setting the workdir
 COPY . .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install /exllamav2 --no-cache-dir
+    pip install ./exllamav2 --no-cache-dir
 
-# Debug: confirm app.py exists
-RUN echo "Checking for app.py..." && ls -la /workspace && cat /workspace/app.py || echo "app.py NOT FOUND"
+# Debug: show contents of /workspace
+RUN echo "Checking /workspace contents:" && ls -la /workspace
 
 # Start FastAPI server
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
