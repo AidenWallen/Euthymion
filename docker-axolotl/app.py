@@ -1,5 +1,10 @@
 # app.py
 import os
+
+# Redirect Hugging Face model cache to /workspace
+os.environ["TRANSFORMERS_CACHE"] = "/workspace/huggingface_cache"
+os.environ["HF_HOME"] = "/workspace/huggingface_cache"
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 from transformers import AutoTokenizer, AutoModelForCausalLM
