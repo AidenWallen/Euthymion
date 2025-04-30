@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Euthymion Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+    #chatbox {
+      width: 100%;
+      height: 80vh;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      overflow-y: auto;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+    }
+    .message {
+      margin-bottom: 15px;
+    }
+    .user { color: #333; }
+    .assistant { color: #2b7a78; font-style: italic; }
+    #input-area {
+      display: flex;
+      gap: 10px;
+    }
+    #user_input {
+      flex-grow: 1;
+      padding: 10px;
+      font-size: 1em;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    #send_button {
+      padding: 10px 20px;
+      font-size: 1em;
+      background-color: #2b7a78;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #send_button:hover {
+      background-color: #205e5d;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧠 Talk with Euthymion</h1>
+
+  <div id="chatbox"></div>
+
+  <div id="input-area">
+    <input type="text" id="user_input" placeholder="Ask Euthymion something..." autocomplete="off" />
+    <button id="send_button">Send</button>
+  </div>
+
+  <script>
+    let history = [];
+
+    async function sendMessage() {
+      const userInput = document.getElementById("user_input").value.trim();
+      if (!userInput) return;
+
+      const chatbox = document.getElementById("chatbox");
+      chatbox.innerHTML += `<div class="message user"><b>You:</b> ${userInput}</div>`;
+      chatbox.scrollTop = chatbox.scrollHeight;
+
+      document.getElementById("user_input").value = "";
+
+      try {
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ history, user_input: userInput }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        chatbox.innerHTML += `<div class="message assistant"><b>Euthymion:</b> ${data.reply}</div>`;
+        chatbox.scrollTop = chatbox.scrollHeight;
+        history = data.history;
+      } catch (error) {
+        chatbox.innerHTML += `<div class="message assistant"><b>Error:</b> ${error.message}</div>`;
+        chatbox.scrollTop = chatbox.scrollHeight;
+      }
+    }
+
+    document.getElementById("send_button").onclick = sendMessage;
+    document.getElementById("user_input").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
+</body>
+</html>

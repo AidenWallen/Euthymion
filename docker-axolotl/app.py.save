@@ -1,7 +1,7 @@
 # app.py
 import os
 
-# Redirect Hugging Face model cache
+# Redirect Hugging Face model cache to /workspace
 os.environ["TRANSFORMERS_CACHE"] = "/workspace/huggingface_cache"
 os.environ["HF_HOME"] = "/workspace/huggingface_cache"
 
@@ -34,22 +34,18 @@ base = AutoModelForCausalLM.from_pretrained(
     use_auth_token=hf_token
 )
 
-# Apply LoRA adapter correctly if exists
-if os.path.exists(os.path.join(lora_path, "adapter_model.safetensors")):
-    print("✅ LoRA adapter found. Applying...")
-    model = PeftModel.from_pretrained(
-        model=base,
-        model_id=lora_path,
-        is_trainable=False,
-        from_transformers=True,
-        adapter_name="default"
-    )
-else:
-    print("⚠️ No LoRA adapter found. Using base model only.")
-    model = base
+# Apply LoRA adapter correctly
+model = PeftModel.from_pretrained(
+    model=base,
+    model_id=lora_path,
+    is_trainable=False,
+    from_transformers=True
+)
 
 model.eval()
 tokenizer.pad_token = tokenizer.eos_token
+
+print("✅ Model and LoRA adapter loaded successfully!")
 
 # System Prompt
 system_prompt = (
@@ -63,18 +59,17 @@ class Message(BaseModel):
     history: list[str]
     user_input: str
 
-# === Chat Endpoint
 @app.post("/chat")
 def chat(msg: Message):
     history = msg.history + [f"### Human:\n{msg.user_input}", "### Assistant:"]
     full_prompt = f"### System:\n{system_prompt}\n" + "\n".join(history)
 
     inputs = tokenizer(full_prompt, return_tensors="pt", padding=True, truncation=True).to(model.device)
-
+    
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=200,
+            max_new_tokens=400,
             do_sample=True,
             temperature=0.5,
             top_p=0.9,
@@ -90,20 +85,3 @@ def chat(msg: Message):
 
     history[-1] = f"### Assistant:\n{reply}"
     return {"reply": reply, "history": history}
-
-from fastapi.responses import FileResponse
-
-# === Serve index.html at root URL ===
-@app.get("/")
-def serve_index():
-    return FileResponse("/workspace/euthymion/index.html")
-
-# === Health Check Endpoint ===
-@app.get("/health")
-def health():
-    return {"status": "Euthymion alive"}
-
-# === Run FastAPI server ===
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
