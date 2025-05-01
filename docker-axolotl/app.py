@@ -4,6 +4,7 @@ import os
 # Redirect Hugging Face model cache
 os.environ["TRANSFORMERS_CACHE"] = "/workspace/huggingface_cache"
 os.environ["HF_HOME"] = "/workspace/huggingface_cache"
+os.makedirs("/workspace/huggingface_cache", exist_ok=True)
 
 from fastapi import FastAPI
 from pydantic import BaseModel

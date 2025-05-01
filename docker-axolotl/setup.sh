@@ -12,10 +12,14 @@ cd /workspace/euthymion/docker-axolotl || {
 
 # Step 2: Reinstall Python libraries
 echo "📦 Installing Python dependencies..."
-pip install --no-cache-dir -r requirements.txt || {
-  echo "❌ Failed to install requirements.txt"
-  exit 1
-}
+if [ -f "requirements.txt" ]; then
+  pip install --no-cache-dir -r requirements.txt || {
+    echo "❌ Failed to install requirements.txt"
+    exit 1
+  }
+else
+  echo "⚠️ Warning: requirements.txt not found!"
+fi
 
 # Step 3: Reinstall correct Torch & Torchvision for CUDA 12.1
 echo "⚙️ Fixing Torch and Torchvision versions for CUDA 12.1..."
