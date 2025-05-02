@@ -34,5 +34,6 @@ else
   echo "⚠️ Warning: exllamav2 directory not found. Skipping."
 fi
 
-# Step 5: Done
-echo "✅ Euthymion setup complete!"
+# Step 5: Launch the app with extended timeout
+echo "🚀 Launching Euthymion..."
+uvicorn app:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 120
