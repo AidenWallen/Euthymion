@@ -36,4 +36,4 @@ fi
 
 # Step 5: Launch the app with extended timeout
 echo "🚀 Launching Euthymion..."
-uvicorn app:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 120
+uvicorn app:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 180

@@ -88,7 +88,7 @@ def chat(msg: Message):
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=100,
+            max_new_tokens=60,
             do_sample=True,
             temperature=0.5,
             top_p=0.9,
