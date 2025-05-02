@@ -7,6 +7,7 @@ os.environ["HF_HOME"] = "/workspace/huggingface_cache"
 os.makedirs("/workspace/huggingface_cache", exist_ok=True)
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
@@ -17,16 +18,16 @@ app = FastAPI()
 # === Load model once on startup ===
 base_model = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 lora_path = "./out"
-hf_token = os.environ.get("HF_TOKEN")  # Secure token access
+hf_token = os.environ.get("HF_TOKEN")
 
-# Load Tokenizer
+# Load tokenizer
 tokenizer = AutoTokenizer.from_pretrained(
     base_model,
     trust_remote_code=True,
     use_auth_token=hf_token
 )
 
-# Load Base Model
+# Load base model
 base = AutoModelForCausalLM.from_pretrained(
     base_model,
     trust_remote_code=True,
@@ -35,7 +36,7 @@ base = AutoModelForCausalLM.from_pretrained(
     use_auth_token=hf_token
 )
 
-# Apply LoRA adapter correctly if exists
+# Load LoRA adapter if present
 if os.path.exists(os.path.join(lora_path, "adapter_model.safetensors")):
     print("✅ LoRA adapter found. Applying...")
     model = PeftModel.from_pretrained(
@@ -52,22 +53,34 @@ else:
 model.eval()
 tokenizer.pad_token = tokenizer.eos_token
 
-# System Prompt
+# System prompt
 system_prompt = (
-    "You are Euthymion, a sharp-witted Socratic companion. "
-    "Speak with clarity, humor, and depth. Avoid lectures. "
-    "Ask one insightful question at a time. "
-    "Challenge contradictions and guide your companion in vivid, reflective dialogue."
+    "You are Euthymion, a witty Socratic companion. "
+    "Speak clearly and insightfully. Avoid lectures. "
+    "Ask one thoughtful question at a time. "
+    "Challenge contradictions and spark reflection."
 )
-# === Request Model ===
+
+# === Input model ===
 class Message(BaseModel):
     history: list[str]
     user_input: str
 
-# === Chat Endpoint
+# === Truncate history if token limit exceeded ===
+def truncate_history(tokenizer, system_prompt, history, max_prompt_tokens=3500):
+    full_prompt = f"### System:\n{system_prompt}\n" + "\n".join(history)
+    tokens = tokenizer(full_prompt, return_tensors="pt")["input_ids"][0]
+    while len(tokens) > max_prompt_tokens and len(history) > 2:
+        history = history[2:]  # drop oldest exchange
+        full_prompt = f"### System:\n{system_prompt}\n" + "\n".join(history)
+        tokens = tokenizer(full_prompt, return_tensors="pt")["input_ids"][0]
+    return history
+
+# === Chat endpoint ===
 @app.post("/chat")
 def chat(msg: Message):
-    history = msg.history + [f"### Human:\n{msg.user_input}", "### Assistant:"]
+    history = truncate_history(tokenizer, system_prompt, msg.history)
+    history += [f"### Human:\n{msg.user_input}", "### Assistant:"]
     full_prompt = f"### System:\n{system_prompt}\n" + "\n".join(history)
 
     inputs = tokenizer(full_prompt, return_tensors="pt", padding=True, truncation=True).to(model.device)
@@ -75,7 +88,7 @@ def chat(msg: Message):
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=200,
+            max_new_tokens=100,
             do_sample=True,
             temperature=0.5,
             top_p=0.9,
@@ -83,28 +96,22 @@ def chat(msg: Message):
         )
 
     decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-    if "### Assistant:" in decoded:
-        reply = decoded.split("### Assistant:")[-1].split("### Human:")[0].strip()
-    else:
-        reply = "[No response generated.]"
+    reply = decoded.split("### Assistant:")[-1].split("### Human:")[0].strip() if "### Assistant:" in decoded else "[No response generated.]"
 
     history[-1] = f"### Assistant:\n{reply}"
     return {"reply": reply, "history": history}
 
-from fastapi.responses import FileResponse
-
-# === Serve index.html at root URL ===
+# === Serve static UI ===
 @app.get("/")
 def serve_index():
     return FileResponse("/workspace/euthymion/index.html")
 
-# === Health Check Endpoint ===
+# === Health check ===
 @app.get("/health")
 def health():
     return {"status": "Euthymion alive"}
 
-# === Run FastAPI server ===
+# === Launch server ===
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
