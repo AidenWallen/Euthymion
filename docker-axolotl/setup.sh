@@ -4,6 +4,18 @@ echo "==============================================="
 echo "Starting Euthymion setup inside /workspace..."
 echo "==============================================="
 
+# Step 0: Ensure Docker is installed
+echo "🐳 Checking for Docker..."
+if ! command -v docker &> /dev/null; then
+  echo "📦 Docker not found. Installing..."
+  apt update && apt install -y docker.io || {
+    echo "❌ Failed to install Docker"
+    exit 1
+  }
+else
+  echo "✅ Docker is already installed."
+fi
+
 # Step 1: Move into project directory
 cd /workspace/euthymion/docker-axolotl || {
   echo "❌ Failed to cd into /workspace/euthymion/docker-axolotl"
@@ -35,6 +47,12 @@ pip uninstall -y torch torchvision torchaudio
 pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
 # Step 6: Launch TGI via Docker
+echo "🚀 Starting Docker daemon..."
+service docker start || {
+  echo "❌ Failed to start Docker daemon"
+  exit 1
+}
+
 echo "🚀 Launching Euthymion with Hugging Face TGI Docker..."
 docker run --gpus all --shm-size 1g -p 8080:80 \
   -v /workspace/euthymion/docker-axolotl/out:/data \
