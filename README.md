@@ -34,21 +34,13 @@ git clone https://github.com/AidenWallen/Euthymion.git
 cd Euthymion/docker-axolotl
 ```
 
-### 2. Install Dependencies
+### 2. Install Dependencies and Launch Euthymion
 
 ```bash
 bash setup.sh
 ```
 
 This installs all required packages and aligns Torch with CUDA 12.1.
-
-### 3. Launch Euthymion
-
-For TGI users:
-
-```bash
-bash start.sh
-```
 
 Then navigate to: [http://localhost:8000](http://localhost:8000)
 

@@ -46,13 +46,17 @@ echo "⚙️  Reinstalling Torch and Torchvision for CUDA 12.1 compatibility..."
 pip uninstall -y torch torchvision torchaudio
 pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
-# Step 6: Launch TGI via Docker
-echo "🚀 Starting Docker daemon..."
-service docker start || {
-  echo "❌ Failed to start Docker daemon"
+# Step 6: Safe Docker check
+echo "🔍 Checking Docker daemon..."
+if ! docker info > /dev/null 2>&1; then
+  echo "❌ Docker daemon not available or not running."
+  echo "💡 Make sure your environment supports Docker (e.g., RunPod with Docker pre-enabled)."
   exit 1
-}
+else
+  echo "✅ Docker is running."
+fi
 
+# Step 7: Launch TGI with Docker
 echo "🚀 Launching Euthymion with Hugging Face TGI Docker..."
 docker run --gpus all --shm-size 1g -p 8080:80 \
   -v /workspace/euthymion/docker-axolotl/out:/data \
