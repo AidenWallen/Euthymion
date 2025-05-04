@@ -21,51 +21,25 @@ else
   echo "⚠️ Warning: requirements.txt not found!"
 fi
 
-# Step 3: Install TGI CLI from source
-echo "🧠 Installing Text Generation Inference CLI manually..."
-TMP_DIR=$(mktemp -d)
-git clone --depth 1 https://github.com/huggingface/text-generation-inference.git "$TMP_DIR" || {
-  echo "❌ Failed to clone TGI repo"
-  exit 1
-}
-if [ -f "$TMP_DIR/cli/pyproject.toml" ]; then
-  pip install --no-cache-dir "$TMP_DIR/cli" || {
-    echo "❌ Failed to install CLI from source"
-    exit 1
-  }
-else
-  echo "❌ CLI project structure not found. Cannot install."
-  exit 1
-fi
-rm -rf "$TMP_DIR"
-
-# Step 3.1: Check for text-generation-launcher
-if ! command -v text-generation-launcher &> /dev/null; then
-  echo "⚠️ text-generation-launcher not in PATH. Attempting to locate..."
-  TGI_BIN=$(find / -type f -name "text-generation-launcher" 2>/dev/null | head -n 1)
-  if [ -n "$TGI_BIN" ]; then
-    echo "🔧 Found launcher at $TGI_BIN. Adding to PATH."
-    export PATH="$PATH:$(dirname "$TGI_BIN")"
-  else
-    echo "❌ text-generation-launcher still not found. Aborting."
-    exit 1
-  fi
-fi
+# Step 3: Skip TGI CLI install (not supported via pip)
+echo "❌ Skipping text-generation-launcher CLI install — not pip-installable"
 
 # Step 4: Reinstall Torch for CUDA 12.1
 echo "⚙️ Fixing Torch and Torchvision for CUDA 12.1..."
 pip uninstall -y torch torchvision torchaudio
 pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
-# Step 5: Launch server
-echo "🚀 Launching Euthymion with TGI..."
-text-generation-launcher \
+# Step 5: Launch TGI via Docker
+echo "🚀 Launching Euthymion with Hugging Face TGI Docker..."
+docker run --gpus all --shm-size 1g -p 8080:80 \
+  -v /workspace/euthymion/docker-axolotl/out:/data \
+  ghcr.io/huggingface/text-generation-inference:latest \
   --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 \
-  --trust-remote-code \
   --revision main \
+  --trust-remote-code \
   --max-input-length 4096 \
   --max-total-tokens 8192 \
   --quantize bf16 \
   --dtype float16 \
   --rope-scaling linear \
-  --lora /workspace/euthymion/docker-axolotl/out
+  --lora /data
