@@ -22,7 +22,7 @@ cd /workspace/euthymion/docker-axolotl || {
   exit 1
 }
 
-# Step 2: Upgrade pip to avoid warnings
+# Step 2: Upgrade pip
 echo "⬆️  Upgrading pip..."
 export PIP_ROOT_USER_ACTION=ignore
 python -m pip install --upgrade pip
@@ -31,32 +31,31 @@ python -m pip install --upgrade pip
 echo "📦 Installing Python dependencies..."
 if [ -f "requirements.txt" ]; then
   pip install --no-cache-dir -r requirements.txt || {
-    echo "❌ Failed to install requirements.txt"
+    echo "❌ Failed to install requirements"
     exit 1
   }
 else
   echo "⚠️  Warning: requirements.txt not found!"
 fi
 
-# Step 4: Skip CLI install, explain why
-echo "ℹ️  Skipping text-generation-launcher CLI install — not pip-installable; Docker provides it internally"
-
-# Step 5: Reinstall Torch for CUDA 12.1
-echo "⚙️  Reinstalling Torch and Torchvision for CUDA 12.1 compatibility..."
-pip uninstall -y torch torchvision torchaudio
+# Step 4: Reinstall Torch for CUDA 12.1 compatibility
+echo "⚙️  Installing PyTorch for CUDA 12.1..."
 pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
-# Step 6: Safe Docker check
+# Step 5: Skip CLI install
+echo "ℹ️  Skipping text-generation-launcher CLI install — Docker provides it internally"
+
+# Step 6: Check Docker daemon
 echo "🔍 Checking Docker daemon..."
 if ! docker info > /dev/null 2>&1; then
-  echo "❌ Docker daemon not available or not running."
-  echo "💡 Make sure your environment supports Docker (e.g., RunPod with Docker pre-enabled)."
+  echo "❌ Docker daemon not running or inaccessible."
+  echo "💡 Make sure Docker is enabled in this environment (e.g., RunPod A100 or L40 pods)."
   exit 1
 else
-  echo "✅ Docker is running."
+  echo "✅ Docker daemon is running."
 fi
 
-# Step 7: Launch TGI with Docker
+# Step 7: Launch Hugging Face TGI container
 echo "🚀 Launching Euthymion with Hugging Face TGI Docker..."
 docker run --gpus all --shm-size 1g -p 8080:80 \
   -v /workspace/euthymion/docker-axolotl/out:/data \
