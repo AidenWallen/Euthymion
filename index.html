@@ -16,15 +16,10 @@
       margin-bottom: 10px;
       border: 1px solid #ccc;
     }
-    .message {
-      margin-bottom: 15px;
-    }
+    .message { margin-bottom: 15px; }
     .user { color: #333; }
     .assistant { color: #2b7a78; font-style: italic; }
-    #input-area {
-      display: flex;
-      gap: 10px;
-    }
+    #input-area { display: flex; gap: 10px; }
     #user_input {
       flex-grow: 1;
       padding: 10px;
@@ -41,16 +36,12 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    #send_button:hover {
-      background-color: #205e5d;
-    }
+    #send_button:hover { background-color: #205e5d; }
   </style>
 </head>
 <body>
   <h1>🧠 Talk with Euthymion</h1>
-
   <div id="chatbox"></div>
-
   <div id="input-area">
     <input type="text" id="user_input" placeholder="Ask Euthymion something..." autocomplete="off" />
     <button id="send_button">Send</button>
@@ -59,41 +50,77 @@
   <script>
     let history = [];
 
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function buildPrompt() {
+      const maxTurns = 12;
+      const trimmedHistory = history.slice(-maxTurns);
+      return [
+        "### System:\nYou are Euthymion, a witty Socratic companion. Speak clearly and insightfully. Avoid lectures. Ask one thoughtful question at a time. Challenge contradictions and spark reflection.",
+        ...trimmedHistory
+      ].join('\n');
+    }
+
     async function sendMessage() {
-      const userInput = document.getElementById("user_input").value.trim();
+      const inputElem = document.getElementById("user_input");
+      const chatbox = document.getElementById("chatbox");
+      const userInput = inputElem.value.trim();
       if (!userInput) return;
 
-      const chatbox = document.getElementById("chatbox");
-      chatbox.innerHTML += `<div class="message user"><b>You:</b> ${userInput}</div>`;
+      chatbox.innerHTML += `<div class="message user"><b>You:</b> ${escapeHtml(userInput)}</div>`;
       chatbox.scrollTop = chatbox.scrollHeight;
+      inputElem.value = "";
+      inputElem.disabled = true;
+      document.getElementById("send_button").disabled = true;
 
-      document.getElementById("user_input").value = "";
+      history.push(`### Human:\n${userInput}`);
+      history.push(`### Assistant:`);
+
+      const payload = {
+        inputs: buildPrompt(),
+        parameters: {
+          max_new_tokens: 100,
+          temperature: 0.5,
+          top_p: 0.9,
+          do_sample: true
+        }
+      };
 
       try {
-        const response = await fetch("/chat", {
+        const res = await fetch("/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ history, user_input: userInput }),
+          body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.status}`);
-        }
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const data = await res.json();
 
-        const data = await response.json();
-        chatbox.innerHTML += `<div class="message assistant"><b>Euthymion:</b> ${data.reply}</div>`;
-        chatbox.scrollTop = chatbox.scrollHeight;
-        history = data.history;
-      } catch (error) {
-        chatbox.innerHTML += `<div class="message assistant"><b>Error:</b> ${error.message}</div>`;
-        chatbox.scrollTop = chatbox.scrollHeight;
+        const reply = data.generated_text.split("### Assistant:").pop().split("### Human:")[0].trim();
+        chatbox.innerHTML += `<div class="message assistant"><b>Euthymion:</b> ${escapeHtml(reply)}</div>`;
+        history[history.length - 1] = `### Assistant:\n${reply}`;
+      } catch (err) {
+        chatbox.innerHTML += `<div class="message assistant"><b>Error:</b> ${escapeHtml(err.message)}</div>`;
       }
+
+      chatbox.scrollTop = chatbox.scrollHeight;
+      inputElem.disabled = false;
+      document.getElementById("send_button").disabled = false;
+      inputElem.focus();
     }
 
     document.getElementById("send_button").onclick = sendMessage;
-    document.getElementById("user_input").addEventListener("keydown", function(e) {
+    document.getElementById("user_input").addEventListener("keydown", e => {
       if (e.key === "Enter") sendMessage();
     });
+
+    window.onload = () => {
+      document.getElementById("user_input").focus();
+    };
   </script>
 </body>
 </html>
