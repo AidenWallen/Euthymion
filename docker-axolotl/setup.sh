@@ -11,7 +11,8 @@ cd /workspace/euthymion/docker-axolotl || {
 }
 
 # Step 2: Upgrade pip to avoid warnings
-echo "⬆️ Upgrading pip..."
+echo "⬆️  Upgrading pip..."
+export PIP_ROOT_USER_ACTION=ignore
 python -m pip install --upgrade pip
 
 # Step 3: Install Python dependencies
@@ -22,14 +23,14 @@ if [ -f "requirements.txt" ]; then
     exit 1
   }
 else
-  echo "⚠️ Warning: requirements.txt not found!"
+  echo "⚠️  Warning: requirements.txt not found!"
 fi
 
-# Step 4: Skip TGI CLI install (not pip-installable)
-echo "❌ Skipping text-generation-launcher CLI install — not pip-installable"
+# Step 4: Skip CLI install, explain why
+echo "ℹ️  Skipping text-generation-launcher CLI install — not pip-installable; Docker provides it internally"
 
 # Step 5: Reinstall Torch for CUDA 12.1
-echo "⚙️ Fixing Torch and Torchvision for CUDA 12.1..."
+echo "⚙️  Reinstalling Torch and Torchvision for CUDA 12.1 compatibility..."
 pip uninstall -y torch torchvision torchaudio
 pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
