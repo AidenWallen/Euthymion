@@ -28,6 +28,19 @@ pip install --no-cache-dir text-generation || {
   exit 1
 }
 
+# Step 3.1: Check for text-generation-launcher in PATH or fix it
+if ! command -v text-generation-launcher &> /dev/null; then
+  echo "⚠️ text-generation-launcher not in PATH. Attempting to locate..."
+  TGI_BIN=$(find / -type f -name "text-generation-launcher" 2>/dev/null | head -n 1)
+  if [ -n "$TGI_BIN" ]; then
+    echo "🔧 Found launcher at $TGI_BIN. Adding to PATH."
+    export PATH="$PATH:$(dirname "$TGI_BIN")"
+  else
+    echo "❌ text-generation-launcher still not found. Aborting."
+    exit 1
+  fi
+fi
+
 # Step 4: Install Torch/CUDA bindings
 echo "⚙️ Fixing Torch and Torchvision for CUDA 12.1..."
 pip uninstall -y torch torchvision torchaudio
