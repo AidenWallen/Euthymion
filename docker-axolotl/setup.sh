@@ -23,7 +23,7 @@ fi
 
 # Step 3: Install TGI CLI
 echo "🧠 Installing Text Generation Inference CLI..."
-pip install --no-cache-dir text-generation || {
+pip install --no-cache-dir git+https://github.com/huggingface/text-generation-inference.git@main#subdirectory=cli || {
   echo "❌ Failed to install text-generation CLI"
   exit 1
 }
@@ -46,15 +46,7 @@ echo "⚙️ Fixing Torch and Torchvision for CUDA 12.1..."
 pip uninstall -y torch torchvision torchaudio
 pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
-# Step 5: Install exllamav2 if present
-if [ -d "./exllamav2" ]; then
-  echo "📥 Installing exllamav2..."
-  pip install --no-cache-dir ./exllamav2 || echo "⚠️ Warning: exllamav2 install failed. Continuing..."
-else
-  echo "⚠️ Warning: exllamav2 directory not found. Skipping."
-fi
-
-# Step 6: Launch TGI server
+# Step 5: Launch TGI server
 echo "🚀 Launching Euthymion with TGI..."
 text-generation-launcher \
   --model-id mistralai/Mixtral-8x7B-Instruct-v0.1 \
